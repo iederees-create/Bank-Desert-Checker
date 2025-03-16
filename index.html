@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Desert Checker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f4f4f9;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    input {
+      padding: 10px;
+      width: 200px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #map {
+      width: 100%;
+      height: 300px;
+      margin-top: 20px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bank Desert Checker</h1>
+    <input type="text" id="zipCode" placeholder="Enter Zip Code">
+    <button onclick="checkBankDesert()">Check</button>
+    <div id="result"></div>
+    <div id="map"></div>
+  </div>
+
+  <!-- Include Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Initialize the map
+    const map = L.map('map').setView([39.8283, -98.5795], 4); // Default center (USA)
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Function to check for banking deserts
+    function checkBankDesert() {
+      const zipCode = document.getElementById('zipCode').value;
+      const resultDiv = document.getElementById('result');
+
+      // Example logic: Check if the zip code is a banking desert
+      const bankingDeserts = ['10001', '90001', '60601']; // Example banking deserts
+      if (bankingDeserts.includes(zipCode)) {
+        resultDiv.textContent = `Zip Code ${zipCode} is a banking desert.`;
+      } else {
+        resultDiv.textContent = `Zip Code ${zipCode} is not a banking desert.`;
+      }
+
+      // Geocode the zip code using Nominatim (OpenStreetMap's geocoding service)
+      fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zipCode}&country=US&format=json`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.length > 0) {
+            const latitude = parseFloat(data[0].lat);
+            const longitude = parseFloat(data[0].lon);
+            map.setView([latitude, longitude], 12); // Zoom in on the location
+
+            // Add a marker to the map
+            L.marker([latitude, longitude]).addTo(map)
+              .bindPopup(`Zip Code: ${zipCode}`)
+              .openPopup();
+          } else {
+            resultDiv.textContent += ' Location not found.';
+          }
+        });
+    }
+  </script>
+</body>
+</html>
