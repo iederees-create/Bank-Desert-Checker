@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bank Desert Checker</title>
+  <title>Bank Desert Checker - South Africa</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -28,6 +28,8 @@
       border-radius: 8px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       text-align: center;
+      width: 90%;
+      max-width: 800px;
     }
 
     input {
@@ -53,28 +55,53 @@
 
     #map {
       width: 100%;
-      height: 300px;
+      height: 400px;
       margin-top: 20px;
       border-radius: 8px;
+    }
+
+    #results {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    #results h2 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    #results p {
+      margin: 5px 0;
+    }
+
+    #results a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    #results a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Bank Desert Checker</h1>
-    <input type="text" id="zipCode" placeholder="Enter Zip Code">
+    <h1>Bank Desert Checker - South Africa</h1>
+    <input type="text" id="postalCode" placeholder="Enter Postal Code">
     <button onclick="checkBankDesert()">Check</button>
-    <div id="result"></div>
     <div id="map"></div>
+    <div id="results"></div>
   </div>
 
   <!-- Include Leaflet.js -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Include Heatmap Plugin -->
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
   <script>
     // Initialize the map
-    const map = L.map('map').setView([39.8283, -98.5795], 4); // Default center (USA)
+    const map = L.map('map').setView([-28.4793, 24.6727], 5); // Default center (South Africa)
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -82,35 +109,73 @@
     }).addTo(map);
 
     // Function to check for banking deserts
-    function checkBankDesert() {
-      const zipCode = document.getElementById('zipCode').value;
-      const resultDiv = document.getElementById('result');
+    async function checkBankDesert() {
+      const postalCode = document.getElementById('postalCode').value;
+      const resultsDiv = document.getElementById('results');
 
-      // Example logic: Check if the zip code is a banking desert
-      const bankingDeserts = ['10001', '90001', '60601']; // Example banking deserts
-      if (bankingDeserts.includes(zipCode)) {
-        resultDiv.textContent = `Zip Code ${zipCode} is a banking desert.`;
-      } else {
-        resultDiv.textContent = `Zip Code ${zipCode} is not a banking desert.`;
+      // Clear previous results
+      resultsDiv.innerHTML = '';
+
+      // Fetch bank locations (mock data for now)
+      const banks = await fetchBankLocations(postalCode);
+
+      // Fetch poverty rate and median income (mock data for now)
+      const { povertyRate, medianIncome } = await fetchSocioeconomicData(postalCode);
+
+      // Geocode the postal code using Nominatim
+      const location = await geocodePostalCode(postalCode);
+      if (location) {
+        map.setView([location.lat, location.lon], 12); // Zoom in on the location
+
+        // Add bank markers
+        banks.forEach(bank => {
+          L.marker([bank.lat, bank.lon]).addTo(map)
+            .bindPopup(`<b>${bank.name}</b><br>${bank.address}`);
+        });
+
+        // Add heatmap for poverty rates (mock data for now)
+        const heatmapData = banks.map(bank => [bank.lat, bank.lon, 0.5]); // Mock intensity
+        L.heatLayer(heatmapData, { radius: 25 }).addTo(map);
       }
 
-      // Geocode the zip code using Nominatim (OpenStreetMap's geocoding service)
-      fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zipCode}&country=US&format=json`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.length > 0) {
-            const latitude = parseFloat(data[0].lat);
-            const longitude = parseFloat(data[0].lon);
-            map.setView([latitude, longitude], 12); // Zoom in on the location
+      // Display results
+      resultsDiv.innerHTML = `
+        <h2>Results for Postal Code ${postalCode}</h2>
+        <p><strong>Number of Banks:</strong> ${banks.length}</p>
+        <p><strong>Poverty Rate:</strong> ${povertyRate}%</p>
+        <p><strong>Median Income:</strong> R${medianIncome}</p>
+        <p><strong>Recommendations:</strong></p>
+        <ul>
+          <li><a href="#" target="_blank">Nearest Bank: ${banks[0]?.name || 'N/A'}</a></li>
+          <li><a href="https://www.ncr.org.za" target="_blank">Financial Literacy Programs</a></li>
+          <li><a href="https://www.gov.za/services" target="_blank">Government Assistance Programs</a></li>
+        </ul>
+      `;
+    }
 
-            // Add a marker to the map
-            L.marker([latitude, longitude]).addTo(map)
-              .bindPopup(`Zip Code: ${zipCode}`)
-              .openPopup();
-          } else {
-            resultDiv.textContent += ' Location not found.';
-          }
-        });
+    // Mock function to fetch bank locations
+    async function fetchBankLocations(postalCode) {
+      // Replace with real data (e.g., SARB or OpenStreetMap)
+      return [
+        { name: 'Standard Bank', address: '123 Main St, Johannesburg', lat: -26.2041, lon: 28.0473 },
+        { name: 'Absa Bank', address: '456 Elm St, Cape Town', lat: -33.9249, lon: 18.4241 },
+      ];
+    }
+
+    // Mock function to fetch socioeconomic data
+    async function fetchSocioeconomicData(postalCode) {
+      // Replace with real data (e.g., Stats SA)
+      return { povertyRate: 30, medianIncome: 150000 };
+    }
+
+    // Function to geocode a postal code using Nominatim
+    async function geocodePostalCode(postalCode) {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${postalCode}&country=South Africa&format=json`);
+      const data = await response.json();
+      if (data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      }
+      return null;
     }
   </script>
 </body>
